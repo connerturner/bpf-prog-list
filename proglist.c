@@ -28,7 +28,8 @@ int iterate_bpf_progs() {
 
         int idcall = bpf_prog_sys(&prog_attr, sizeof(prog_attr));
         if(!idcall) {
-            printf("%u\t\n",prog_attr.next_id);
+            __u32 curr_id = prog_attr.next_id;
+            printf("%u\t\n",curr_id);
             // PROG_GET_NEXT_ID checks for next program > start_id
             // so set start_id to the already printed program id and loop.
             prog_attr.start_id = prog_attr.next_id;
