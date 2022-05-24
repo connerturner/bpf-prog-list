@@ -18,10 +18,10 @@ int bpf_prog_sys(union bpf_attr *attr, unsigned int attrsize){
 
 int bpf_prog_fd(__u32 prog_id){
     int callno = SYSBPF;
-    union bpf_attr attr {
-        .prog_id = prog_id;
-    }
-    return syscall(callno, BPF_PROG_GET_FD_BY_ID, attr, sizeof(attr));
+    union bpf_attr attr = {
+        .prog_id = prog_id
+    };
+    return syscall(callno, BPF_PROG_GET_FD_BY_ID, &attr, sizeof(attr));
 }
 
 int iterate_bpf_progs() {
