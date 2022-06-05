@@ -1,10 +1,10 @@
+#include "util.h"
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <linux/bpf.h>
 
 #define SYSBPF 321
 
@@ -18,11 +18,12 @@ int bpf_prog_sys(union bpf_attr *attr, unsigned int attrsize){
 
 int bpf_prog_fd(__u32 prog_id){
     int callno = SYSBPF;
-    union bpf_attr attr = {
+    union bpf_attr fd_attr = {
         .prog_id = prog_id
     };
-    return syscall(callno, BPF_PROG_GET_FD_BY_ID, &attr, sizeof(attr));
-}
+    int fd = syscall(callno, BPF_PROG_GET_FD_BY_ID, &fd_attr, sizeof(fd_attr));
+    return fd_valid(fd) ? fd : 0;
+} 
 
 int iterate_bpf_progs() {
     // bpf(2) requires an attribute struct to pass parameters to the syscall
@@ -33,11 +34,17 @@ int iterate_bpf_progs() {
     //tabulate output
     printf("id\tfd\t\n");
     while(1) {
-
         int idcall = bpf_prog_sys(&prog_attr, sizeof(prog_attr));
         if(!idcall) {
             __u32 curr_id = prog_attr.next_id;
-            printf("%u\t\n",curr_id);
+            printf("%u\t",curr_id);
+            // Retrieve fd from id
+            int fdcall = bpf_prog_fd(curr_id);
+            if(fdcall != 0) {
+                // only then prepare a prog_info sruct
+                printf("%u\t",fdcall);
+            }
+            printf("\n");
             // PROG_GET_NEXT_ID checks for next program > start_id
             // so set start_id to the already printed program id and loop.
             prog_attr.start_id = prog_attr.next_id;
@@ -50,12 +57,14 @@ int iterate_bpf_progs() {
 }
 
 int main(void) {
+
     // Effective uid needs to be a superuser to access the syscall
-    if(geteuid() == 0)
+    if(geteuid() == 0){
         return iterate_bpf_progs();
-    
-    // Else fail with EACCES error and print a perror to stderror
-    errno = EACCES;
-    perror("Operation not permitted");
-    exit(1);
+    } else {
+        // Else fail with EACCES error and print a perror to stderror
+        errno = EACCES;
+        perror("Operation not permitted");
+        exit(1);
+    }
 }
