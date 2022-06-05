@@ -3,7 +3,7 @@
 #include <string.h>
 #include <linux/bpf.h>
 
-void zero_mem(union bpf_attr *attribute, int fill){
+void zero_mem(void *attribute, int fill){
     memset(attribute, 0, fill);
 }
 
