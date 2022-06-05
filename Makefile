@@ -10,9 +10,9 @@ debug: buildir prog-g
 buildir:
 	mkdir -p $(BDIR)
 prog:
-	$(CC) -o $(BDIR)/proglist proglist.c
+	$(CC) -o $(BDIR)/proglist util.c proglist.c
 prog-g:
-	$(CC) -g -o $(BDIR)/proglist proglist.c
+	$(CC) -g -o $(BDIR)/proglist util.c proglist.c
 run: prog
 	$(BDIR)/proglist
 
