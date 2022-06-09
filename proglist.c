@@ -1,6 +1,7 @@
 #include "util.h"
 #define _GNU_SOURCE
 #include <stdio.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <errno.h>
@@ -23,7 +24,42 @@ int bpf_prog_fd(__u32 prog_id){
     };
     int fd = syscall(callno, BPF_PROG_GET_FD_BY_ID, &fd_attr, sizeof(fd_attr));
     return fd_valid(fd) ? fd : 0;
-} 
+}
+
+
+int get_prog_info(int fd, struct bpf_prog_info *prog, long *prog_length){
+    int callno = SYSBPF;
+    union bpf_attr prog_attr = {
+        .info.bpf_fd = fd,
+        .info.info_len = *prog_length,
+        .info.info = (__u64)((uintptr_t)prog)
+    };
+    //zero_mem(&program, sizeof(program));
+    
+    int progerr = syscall(callno, BPF_OBJ_GET_INFO_BY_FD, &prog_attr, sizeof(prog_attr));
+    // return the syscall error on fail or the program attribute struct length
+    return !progerr ? prog_attr.info.info_len : progerr;
+}
+
+void print_prog_info(int fd) {
+    if(fd_valid(fd)){
+        struct bpf_prog_info program = {};
+        long program_length = sizeof(program);
+        int prog_struct_size = get_prog_info(fd, &program, &program_length);
+        
+        if (prog_struct_size > 0) {
+            program_length = prog_struct_size;
+
+            printf("%u\t 0x%08x\t %x\t ", program.id, program.type, program.gpl_compatible);
+
+        } else {
+            printf("Program struct size invalid. Err: %u", prog_struct_size);
+        }
+
+    } else {
+        printf("FD Not Available, Can't show prog info \n");
+    }
+}
 
 int iterate_bpf_progs() {
     // bpf(2) requires an attribute struct to pass parameters to the syscall
@@ -32,17 +68,15 @@ int iterate_bpf_progs() {
         .start_id = 0
     };
     //tabulate output
-    printf("id\tfd\t\n");
+    printf("id\ttype\tgpl\t\n");
     while(1) {
         int idcall = bpf_prog_sys(&prog_attr, sizeof(prog_attr));
         if(!idcall) {
             __u32 curr_id = prog_attr.next_id;
-            printf("%u\t",curr_id);
-            // Retrieve fd from id
             int fdcall = bpf_prog_fd(curr_id);
             if(fdcall != 0) {
                 // only then prepare a prog_info sruct
-                printf("%u\t",fdcall);
+                print_prog_info(fdcall);
             }
             printf("\n");
             // PROG_GET_NEXT_ID checks for next program > start_id
