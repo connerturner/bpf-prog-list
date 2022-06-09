@@ -14,4 +14,8 @@ void zero_mem(void *attribute, int fill);
 // flags, otherwsie fail
 int fd_valid(int fd);
 
+// Return mapping of bpf_prog_type in textual form, see linux/bpf.h enum bpf_prog_type
+// for latest enums.
+extern const char* prog_type_names[32];
+
 #endif
