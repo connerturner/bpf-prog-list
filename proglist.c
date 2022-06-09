@@ -50,7 +50,7 @@ void print_prog_info(int fd) {
         if (prog_struct_size > 0) {
             program_length = prog_struct_size;
 
-            printf("%u\t 0x%08x\t %x\t ", program.id, program.type, program.gpl_compatible);
+            printf("%u\t %s\t %x\t+%llus\t%lld\t", program.id, prog_type_names[program.type], program.gpl_compatible, (program.load_time / 1000000000LL), program.run_time_ns);
 
         } else {
             printf("Program struct size invalid. Err: %u", prog_struct_size);
@@ -68,7 +68,7 @@ int iterate_bpf_progs() {
         .start_id = 0
     };
     //tabulate output
-    printf("id\ttype\tgpl\t\n");
+    printf("id\ttype\tgpl\tload_time\trun_time\t\n");
     while(1) {
         int idcall = bpf_prog_sys(&prog_attr, sizeof(prog_attr));
         if(!idcall) {
